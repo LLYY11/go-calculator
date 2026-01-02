@@ -31,3 +31,13 @@ calculator-app/
 
 # Claude 设置
 .claude/settings.local.json
+
+# Go 相关文件（只保留网页版本）
+*.go
+*.bat
+*.ps1
+*.sh
+
+# APK 构建文档
+BUILD_APK.md
+BUILD_APK_GUIDE.md
