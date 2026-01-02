@@ -2,6 +2,7 @@
   "name": "Calculator",
   "short_name": "Calculator",
   "description": "A simple and practical Windows-style calculator web application",
+  "id": "/go-calculator/",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1f1f1f",
