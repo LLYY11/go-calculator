@@ -1,0 +1,318 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+)
+
+func main() {
+	http.HandleFunc("/", calculatorHandler)
+
+	fmt.Println("服务器启动在 http://localhost:8080")
+	fmt.Println("请在浏览器中打开: http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func calculatorHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(htmlTemplate))
+}
+
+const htmlTemplate = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 风格计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .calculator {
+            background: #1f1f1f;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .display {
+            background: #1a1a1a;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .display-expression {
+            color: #888;
+            font-size: 16px;
+            margin-bottom: 5px;
+            min-height: 20px;
+            word-wrap: break-word;
+        }
+
+        .display-result {
+            color: #fff;
+            font-size: 48px;
+            font-weight: 300;
+            word-wrap: break-word;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        button {
+            padding: 20px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            font-weight: 500;
+        }
+
+        button:hover {
+            filter: brightness(1.2);
+        }
+
+        button:active {
+            filter: brightness(0.9);
+        }
+
+        .btn-number {
+            background: #3b3b3b;
+            color: #fff;
+        }
+
+        .btn-operator {
+            background: #323232;
+            color: #fff;
+        }
+
+        .btn-operator.active {
+            background: #60cdff;
+            color: #000;
+        }
+
+        .btn-equals {
+            background: #60cdff;
+            color: #000;
+            font-size: 24px;
+        }
+
+        .btn-clear {
+            background: #323232;
+            color: #fff;
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+        }
+
+        .title {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="title">标准计算器</div>
+        <div class="display">
+            <div class="display-expression" id="expression"></div>
+            <div class="display-result" id="display">0</div>
+        </div>
+        <div class="buttons">
+            <button class="btn-clear" onclick="clearDisplay()">C</button>
+            <button class="btn-operator" onclick="appendOperator('/')">/</button>
+            <button class="btn-operator" onclick="appendOperator('*')">×</button>
+            <button class="btn-operator" onclick="backspace()">⌫</button>
+
+            <button class="btn-number" onclick="appendNumber('7')">7</button>
+            <button class="btn-number" onclick="appendNumber('8')">8</button>
+            <button class="btn-number" onclick="appendNumber('9')">9</button>
+            <button class="btn-operator" onclick="appendOperator('-')">-</button>
+
+            <button class="btn-number" onclick="appendNumber('4')">4</button>
+            <button class="btn-number" onclick="appendNumber('5')">5</button>
+            <button class="btn-number" onclick="appendNumber('6')">6</button>
+            <button class="btn-operator" onclick="appendOperator('+')">+</button>
+
+            <button class="btn-number" onclick="appendNumber('1')">1</button>
+            <button class="btn-number" onclick="appendNumber('2')">2</button>
+            <button class="btn-number" onclick="appendNumber('3')">3</button>
+            <button class="btn-equals" onclick="calculate()" style="grid-row: span 2">=</button>
+
+            <button class="btn-number btn-zero" onclick="appendNumber('0')">0</button>
+            <button class="btn-number" onclick="appendNumber('.')">.</button>
+        </div>
+    </div>
+
+    <script>
+        let currentNumber = '0';
+        let previousNumber = '';
+        let operator = '';
+        let shouldResetDisplay = false;
+
+        function updateDisplay() {
+            document.getElementById('display').textContent = currentNumber;
+
+            let expression = '';
+            if (previousNumber) {
+                expression = previousNumber + ' ' + getOperatorSymbol(operator) + ' ' + currentNumber;
+            }
+            document.getElementById('expression').textContent = expression;
+        }
+
+        function getOperatorSymbol(op) {
+            switch(op) {
+                case '*': return '×';
+                case '/': return '÷';
+                default: return op;
+            }
+        }
+
+        function appendNumber(num) {
+            if (shouldResetDisplay) {
+                currentNumber = '0';
+                shouldResetDisplay = false;
+            }
+
+            if (num === '.' && currentNumber.includes('.')) {
+                return;
+            }
+
+            if (currentNumber === '0' && num !== '.') {
+                currentNumber = num;
+            } else {
+                currentNumber += num;
+            }
+
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (previousNumber && operator && !shouldResetDisplay) {
+                calculate();
+            }
+
+            previousNumber = currentNumber;
+            operator = op;
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        function calculate() {
+            if (!operator || !previousNumber) {
+                return;
+            }
+
+            const num1 = parseFloat(previousNumber);
+            const num2 = parseFloat(currentNumber);
+            let result;
+
+            switch (operator) {
+                case '+':
+                    result = num1 + num2;
+                    break;
+                case '-':
+                    result = num1 - num2;
+                    break;
+                case '*':
+                    result = num1 * num2;
+                    break;
+                case '/':
+                    if (num2 === 0) {
+                        alert('不能除以零');
+                        clearDisplay();
+                        return;
+                    }
+                    result = num1 / num2;
+                    break;
+            }
+
+            // 处理浮点数精度
+            result = Math.round(result * 1000000000) / 1000000000;
+
+            currentNumber = result.toString();
+            previousNumber = '';
+            operator = '';
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentNumber = '0';
+            previousNumber = '';
+            operator = '';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (currentNumber.length === 1 || (currentNumber.length === 2 && currentNumber[0] === '-')) {
+                currentNumber = '0';
+            } else {
+                currentNumber = currentNumber.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        // 键盘支持
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+
+            if (key >= '0' && key <= '9') {
+                appendNumber(key);
+            } else if (key === '.') {
+                appendNumber('.');
+            } else if (key === '+') {
+                appendOperator('+');
+            } else if (key === '-') {
+                appendOperator('-');
+            } else if (key === '*') {
+                appendOperator('*');
+            } else if (key === '/') {
+                event.preventDefault();
+                appendOperator('/');
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                calculate();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                clearDisplay();
+            } else if (key === 'Backspace') {
+                backspace();
+            }
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
+`
