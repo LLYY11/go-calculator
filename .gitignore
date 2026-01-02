@@ -25,3 +25,9 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.log
+
+# APK 构建相关（不需要在网页仓库中）
+calculator-app/
+
+# Claude 设置
+.claude/settings.local.json
